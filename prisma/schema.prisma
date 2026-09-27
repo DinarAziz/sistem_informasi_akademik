@@ -1,0 +1,120 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Hari {
+  SENIN
+  SELASA
+  RABU
+  KAMIS
+  JUMAT
+  SABTU
+}
+
+enum Role {
+  MAHASISWA
+  DOSEN
+  ADMIN
+}
+
+enum StatusKrs {
+  DISETUJUI
+  MENUNGGU
+  DITOLAK
+}
+
+model User {
+  id           Int       @id @default(autoincrement())
+  username     String    @unique @db.VarChar(30)
+  passwordHash String    @map("password_hash") @db.VarChar(100)
+  nama         String    @db.VarChar(100)
+  role         Role
+  student      Student?
+  lecturer     Lecturer?
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  @@map("users")
+}
+
+model Lecturer {
+  id        Int       @id @default(autoincrement())
+  nip       String    @unique @db.VarChar(20)
+  nama      String    @db.VarChar(120)
+  userId    Int?      @unique @map("user_id")
+  user      User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  courses   Course[]
+  bimbingan Student[]
+
+  @@map("lecturers")
+}
+
+model Student {
+  id                Int       @id @default(autoincrement())
+  nim               String    @unique @db.VarChar(15)
+  nama              String    @db.VarChar(100)
+  prodi             String    @db.VarChar(100)
+  semester          Int       @db.TinyInt
+  ipk               Decimal   @db.Decimal(3, 2)
+  totalSks          Int       @map("total_sks")
+  userId            Int       @unique @map("user_id")
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dosenPembimbingId Int?      @map("dosen_pembimbing_id")
+  dosenPembimbing   Lecturer? @relation(fields: [dosenPembimbingId], references: [id], onDelete: SetNull)
+  krs               Krs[]
+  createdAt         DateTime  @default(now()) @map("created_at")
+
+  @@index([dosenPembimbingId])
+  @@map("students")
+}
+
+model Course {
+  id         Int      @id @default(autoincrement())
+  kode       String   @unique @db.VarChar(12)
+  nama       String   @db.VarChar(120)
+  sks        Int      @db.TinyInt
+  hari       Hari
+  jamMulai   String   @map("jam_mulai") @db.Char(5)
+  jamSelesai String   @map("jam_selesai") @db.Char(5)
+  ruang      String   @db.VarChar(30)
+  semester   String   @db.VarChar(20)
+  lecturerId Int      @map("lecturer_id")
+  lecturer   Lecturer @relation(fields: [lecturerId], references: [id], onDelete: Restrict)
+  krs        Krs[]
+
+  @@index([semester, hari, jamMulai])
+  @@index([lecturerId])
+  @@map("courses")
+}
+
+model Krs {
+  id        Int       @id @default(autoincrement())
+  studentId Int       @map("student_id")
+  courseId  Int       @map("course_id")
+  status    StatusKrs @default(MENUNGGU)
+  semester  String    @db.VarChar(20)
+  nilaiAngka Decimal? @map("nilai_angka") @db.Decimal(5, 2)
+  nilaiHuruf String?  @map("nilai_huruf") @db.VarChar(2)
+  createdAt DateTime  @default(now()) @map("created_at")
+  student   Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  course    Course    @relation(fields: [courseId], references: [id], onDelete: Restrict)
+
+  @@unique([studentId, courseId])
+  @@index([studentId, status])
+  @@index([courseId])
+  @@map("krs")
+}
+
+model Announcement {
+  id        Int      @id @default(autoincrement())
+  judul     String   @db.VarChar(160)
+  isi       String   @db.Text
+  tanggal   DateTime
+
+  @@index([tanggal])
+  @@map("announcements")
+}

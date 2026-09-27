@@ -1,0 +1,20 @@
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: sia-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: sia_root
+      MYSQL_DATABASE: sia
+    ports:
+      - "3306:3306"
+    volumes:
+      - sia-mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-psia_root"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  sia-mysql-data:
